@@ -1,14 +1,14 @@
-package ${package};
+package makamys.waterbucketnerf;
 
 import net.minecraft.init.Blocks;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 
-@Mod(modid = ${mainclass}.MODID, version = ${mainclass}.VERSION)
-public class ${mainclass}
+@Mod(modid = Waterbucketnerf.MODID, version = Waterbucketnerf.VERSION)
+public class Waterbucketnerf
 {
-    public static final String MODID = "${modid}";
+    public static final String MODID = "waterbucketnerf";
     public static final String VERSION = "@VERSION@";
 
     @EventHandler
