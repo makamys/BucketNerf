@@ -1,7 +1,7 @@
 [
 {
   "modid": "${modid}",
-  "name": "Water Bucket Nerf",
+  "name": "Bucket Nerf",
   "description": "Your water bucket won't save you now.",
   "version": "${version}",
   "mcversion": "${minecraft_version}",

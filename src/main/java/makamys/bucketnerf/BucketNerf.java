@@ -1,4 +1,4 @@
-package makamys.waterbucketnerf;
+package makamys.bucketnerf;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemBucket;
@@ -9,10 +9,10 @@ import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-@Mod(modid = WaterBucketNerf.MODID, version = WaterBucketNerf.VERSION)
-public class WaterBucketNerf
+@Mod(modid = BucketNerf.MODID, version = BucketNerf.VERSION)
+public class BucketNerf
 {
-    public static final String MODID = "waterbucketnerf";
+    public static final String MODID = "bucketnerf";
     public static final String VERSION = "@VERSION@";
 
     @EventHandler
