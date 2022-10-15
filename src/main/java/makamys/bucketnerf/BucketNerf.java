@@ -22,9 +22,11 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onFillBucket(FillBucketEvent event) {
-        ItemBucket bucket = (ItemBucket)event.current.getItem();
-        if(bucket == Items.water_bucket) {
-            event.setCanceled(true);
+        if(!event.entityPlayer.capabilities.isCreativeMode) {
+            ItemBucket bucket = (ItemBucket)event.current.getItem();
+            if(bucket == Items.water_bucket) {
+                event.setCanceled(true);
+            }
         }
     }
 }
