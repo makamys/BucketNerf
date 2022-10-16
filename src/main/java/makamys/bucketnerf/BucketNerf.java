@@ -78,14 +78,14 @@ public class BucketNerf
                 
                 try {
                     String[] leftAndRight = line.split(" ");
-                    if(leftAndRight.length != 2) {
+                    if(leftAndRight.length != 1 && leftAndRight.length != 2) {
                         throw new IllegalArgumentException("Line contains more than 2 tokens");
                     } else {
                         String left = leftAndRight[0];
-                        String right = leftAndRight[1];
+                        String right = leftAndRight.length < 2 ? null : leftAndRight[1];
                         
                         Pair<Item, Integer> leftItemMeta = parseItemMeta(left);
-                        Pair<Item, Integer> rightItemMeta = parseItemMeta(right);
+                        Pair<Item, Integer> rightItemMeta = right == null ? Pair.of(null, null) : parseItemMeta(right);
                         
                         bucketRecipes.add(Pair.of(leftItemMeta, rightItemMeta));
                     }
@@ -150,10 +150,13 @@ public class BucketNerf
                 
                 if(output != null) {
                     event.setCanceled(true);
-                    networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
-        
-                    for (int l = 0; l < 8; ++l) {
-                        event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+                    
+                    if(!output.equals(Pair.of(null, null))) {
+                        networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
+            
+                        for (int l = 0; l < 8; ++l) {
+                            event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+                        }
                     }
                 }
             }
