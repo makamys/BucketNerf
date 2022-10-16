@@ -28,6 +28,7 @@ import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
@@ -122,6 +123,12 @@ public class BucketNerf
             }
         }
         return null;
+    }
+    
+    @EventHandler
+    public void onServerAboutToStart(FMLServerAboutToStartEvent event) {
+        Config.reloadConfig();
+        parseConfig();
     }
     
     @SubscribeEvent
