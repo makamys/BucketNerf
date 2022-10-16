@@ -144,14 +144,17 @@ public class BucketNerf
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
         if(Config._enableWaterBucketNerf) {
-            Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
-            
-            if(output != null) {
-                event.setCanceled(true);
-                networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
-    
-                for (int l = 0; l < 8; ++l) {
-                    event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+            if((event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR || event.action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK)
+                    && !event.entityPlayer.capabilities.isCreativeMode) {
+                Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
+                
+                if(output != null) {
+                    event.setCanceled(true);
+                    networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
+        
+                    for (int l = 0; l < 8; ++l) {
+                        event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+                    }
                 }
             }
         }
