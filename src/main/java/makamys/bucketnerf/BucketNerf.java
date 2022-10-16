@@ -4,7 +4,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.init.Items;
-import net.minecraft.item.ItemBucket;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IExtendedEntityProperties;
@@ -12,6 +12,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityEvent.EntityConstructing;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +21,11 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import cpw.mods.fml.relauncher.Side;
+import makamys.bucketnerf.Packets.HandlerEmptyBucket;
+import makamys.bucketnerf.Packets.MessageEmptyBucket;
 
 @Mod(modid = BucketNerf.MODID, version = BucketNerf.VERSION)
 public class BucketNerf
@@ -38,14 +43,25 @@ public class BucketNerf
     @EventHandler
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
+        
+        networkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+        networkWrapper.registerMessage(HandlerEmptyBucket.class, MessageEmptyBucket.class, 0, Side.SERVER);
     }
     
     @SubscribeEvent
     public void onFillBucket(FillBucketEvent event) {
-        if(!event.entityPlayer.capabilities.isCreativeMode) {
-            ItemBucket bucket = (ItemBucket)event.current.getItem();
-            if(bucket == Items.water_bucket) {
-                event.setCanceled(true);
+        
+    }
+    
+    @SubscribeEvent
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        ItemStack is = event.entityPlayer.getHeldItem();
+        if(is != null && is.getItem() == Items.water_bucket) {
+            event.setCanceled(true);
+            networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));            
+
+            for (int l = 0; l < 8; ++l) {
+                event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
             }
         }
     }
