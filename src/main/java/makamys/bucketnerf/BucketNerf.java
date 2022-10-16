@@ -72,24 +72,26 @@ public class BucketNerf
     public static void parseConfig() {
         bucketRecipes.clear();
         
-        for(String line : Config.bucketUsageRecipes) {
-            if(line.startsWith("#") || line.isEmpty()) continue;
-            
-            try {
-                String[] leftAndRight = line.split(" ");
-                if(leftAndRight.length != 2) {
-                    throw new IllegalArgumentException("Line contains more than 2 tokens");
-                } else {
-                    String left = leftAndRight[0];
-                    String right = leftAndRight[1];
-                    
-                    Pair<Item, Integer> leftItemMeta = parseItemMeta(left);
-                    Pair<Item, Integer> rightItemMeta = parseItemMeta(right);
-                    
-                    bucketRecipes.add(Pair.of(leftItemMeta, rightItemMeta));
+        if(Config._enableWaterBucketNerf) {
+            for(String line : Config.bucketUsageRecipes) {
+                if(line.startsWith("#") || line.isEmpty()) continue;
+                
+                try {
+                    String[] leftAndRight = line.split(" ");
+                    if(leftAndRight.length != 2) {
+                        throw new IllegalArgumentException("Line contains more than 2 tokens");
+                    } else {
+                        String left = leftAndRight[0];
+                        String right = leftAndRight[1];
+                        
+                        Pair<Item, Integer> leftItemMeta = parseItemMeta(left);
+                        Pair<Item, Integer> rightItemMeta = parseItemMeta(right);
+                        
+                        bucketRecipes.add(Pair.of(leftItemMeta, rightItemMeta));
+                    }
+                } catch(Exception e) {
+                    LOGGER.warn("Error parsing line `" + line + "`: " + e.getMessage());
                 }
-            } catch(Exception e) {
-                LOGGER.warn("Error parsing line `" + line + "`: " + e.getMessage());
             }
         }
     }
@@ -141,36 +143,40 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
-        Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
-        
-        if(output != null) {
-            event.setCanceled(true);
-            networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));            
-
-            for (int l = 0; l < 8; ++l) {
-                event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+        if(Config._enableWaterBucketNerf) {
+            Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
+            
+            if(output != null) {
+                event.setCanceled(true);
+                networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
+    
+                for (int l = 0; l < 8; ++l) {
+                    event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+                }
             }
         }
     }
     
     @SubscribeEvent
     public void onEntityInteract(EntityInteractEvent event) {
-        if(event.entityPlayer.getHeldItem() != null && event.entityPlayer.getHeldItem().getItem() == Items.bucket) {
-            if(isMilkableArachne(event.target)) {
-                EntityTameable tameable = (EntityTameable)event.target;   
-                if(tameable.func_152114_e(event.entityPlayer)) { // isTamedBy
-                    BucketNerfProperties props = BucketNerfProperties.fromEntity(tameable);
-                    
-                    long worldTime = event.entityLiving.worldObj.getTotalWorldTime();
-                    
-                    LOGGER.trace("worldTime: " + worldTime + " nextMilkTime: " + props.getNextMilkTime());
-                    
-                    if(worldTime > props.getNextMilkTime()) {
-                        props.setNextMilkTime(worldTime + generateMilkCooldownFor(tameable));
-                        LOGGER.trace("can milk, set next time to " + props.getNextMilkTime());
-                    } else {
-                        LOGGER.trace("can not milk.");
-                        event.setCanceled(true);
+        if(Config._enableTameableArachne) {
+            if(event.entityPlayer.getHeldItem() != null && event.entityPlayer.getHeldItem().getItem() == Items.bucket) {
+                if(isMilkableArachne(event.target)) {
+                    EntityTameable tameable = (EntityTameable)event.target;   
+                    if(tameable.func_152114_e(event.entityPlayer)) { // isTamedBy
+                        BucketNerfProperties props = BucketNerfProperties.fromEntity(tameable);
+                        
+                        long worldTime = event.entityLiving.worldObj.getTotalWorldTime();
+                        
+                        LOGGER.trace("worldTime: " + worldTime + " nextMilkTime: " + props.getNextMilkTime());
+                        
+                        if(worldTime > props.getNextMilkTime()) {
+                            props.setNextMilkTime(worldTime + generateMilkCooldownFor(tameable));
+                            LOGGER.trace("can milk, set next time to " + props.getNextMilkTime());
+                        } else {
+                            LOGGER.trace("can not milk.");
+                            event.setCanceled(true);
+                        }
                     }
                 }
             }
@@ -179,10 +185,12 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onEntityConstructing(EntityConstructing event) {
-        if(isMilkableArachne(event.entity)) {
-            event.entity.getDataWatcher().addObjectByDataType(29, 4);
-            event.entity.getDataWatcher().updateObject(29, "-1");
-            event.entity.registerExtendedProperties(MODID, new BucketNerfProperties());
+        if(Config._enableTameableArachne) {
+            if(isMilkableArachne(event.entity)) {
+                event.entity.getDataWatcher().addObjectByDataType(29, 4);
+                event.entity.getDataWatcher().updateObject(29, "-1");
+                event.entity.registerExtendedProperties(MODID, new BucketNerfProperties());
+            }
         }
     }
     
