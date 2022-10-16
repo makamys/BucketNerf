@@ -4,6 +4,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
@@ -14,12 +15,19 @@ import net.minecraftforge.event.entity.player.EntityInteractEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLPostInitializationEvent;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
@@ -37,15 +45,83 @@ public class BucketNerf
     
     public static SimpleNetworkWrapper networkWrapper;
     
-    public static final int MILK_COOLDOWN = 20 * 10; // 10 seconds
-    public static final int NEXT_MILK_TIME_DATA_ID = 29;
+    public static List<Pair<Pair<Item, Integer>, Pair<Item, Integer>>> bucketRecipes = new ArrayList<>();
 
+    @EventHandler
+    public void preinit(FMLPreInitializationEvent event) {
+        Config.reloadConfig();
+    }
+    
     @EventHandler
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
         
         networkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
         networkWrapper.registerMessage(HandlerEmptyBucket.class, MessageEmptyBucket.class, 0, Side.SERVER);
+    }
+    
+    @EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        parseConfig();
+    }
+    
+    public static void parseConfig() {
+        bucketRecipes.clear();
+        
+        for(String line : Config.bucketUsageRecipes) {
+            if(line.startsWith("#") || line.isEmpty()) continue;
+            
+            try {
+                String[] leftAndRight = line.split(" ");
+                if(leftAndRight.length != 2) {
+                    throw new IllegalArgumentException("Line contains more than 2 tokens");
+                } else {
+                    String left = leftAndRight[0];
+                    String right = leftAndRight[1];
+                    
+                    Pair<Item, Integer> leftItemMeta = parseItemMeta(left);
+                    Pair<Item, Integer> rightItemMeta = parseItemMeta(right);
+                    
+                    bucketRecipes.add(Pair.of(leftItemMeta, rightItemMeta));
+                }
+            } catch(Exception e) {
+                LOGGER.warn("Error parsing line `" + line + "`: " + e.getMessage());
+            }
+        }
+    }
+    
+    private static Pair<Item, Integer> parseItemMeta(String string) {
+        try {
+            String[] parts = string.split(":");
+            if(parts.length != 2 && parts.length != 3) {
+                throw new IllegalArgumentException("String should consist of two or three colon-separated components");
+            }
+            String namespace = parts[0];
+            String name = parts[1];
+            int meta = parts.length < 3 ? -1 : Integer.parseInt(parts[2]);
+            
+            Item item = (Item)Item.itemRegistry.getObject(namespace + ":" + name);
+            if(item == null) {
+                throw new IllegalArgumentException("Unknown item: " + namespace + ":" + name);
+            }
+            return Pair.of(item, meta);
+        } catch(Exception e) {
+            LOGGER.warn("Error parsing item meta string `" + string + "`: " + e.getMessage());
+            throw new RuntimeException();
+        }
+    }
+    
+    public static Pair<Item, Integer> getRecipeOutput(ItemStack is) {
+        if(is == null) return null;
+        
+        for(Pair<Pair<Item, Integer>, Pair<Item, Integer>> recipe : bucketRecipes) {
+            Item inputItem = recipe.getLeft().getLeft();
+            int inputMeta = recipe.getLeft().getRight();
+            if(inputItem == is.getItem() && (inputMeta == -1 || inputMeta == is.getItemDamage())) {
+                return recipe.getRight();
+            }
+        }
+        return null;
     }
     
     @SubscribeEvent
@@ -55,8 +131,9 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
-        ItemStack is = event.entityPlayer.getHeldItem();
-        if(is != null && is.getItem() == Items.water_bucket) {
+        Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
+        
+        if(output != null) {
             event.setCanceled(true);
             networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));            
 
@@ -79,7 +156,7 @@ public class BucketNerf
                     LOGGER.trace("worldTime: " + worldTime + " nextMilkTime: " + props.getNextMilkTime());
                     
                     if(worldTime > props.getNextMilkTime()) {
-                        props.setNextMilkTime(worldTime + MILK_COOLDOWN);
+                        props.setNextMilkTime(worldTime + generateMilkCooldownFor(tameable));
                         LOGGER.trace("can milk, set next time to " + props.getNextMilkTime());
                     } else {
                         LOGGER.trace("can not milk.");
@@ -105,6 +182,33 @@ public class BucketNerf
             return entityName.equals("tameArachne") || entityName.equals("tameArachneMedium") || entityName.equals("tameHarpy");
         }
         return false;
+    }
+    
+    private static int generateMilkCooldownFor(Entity entity) {
+        if(entity instanceof EntityTameable) {
+            Random rand = entity.worldObj.rand;
+            String entityName = (String)EntityList.classToStringMapping.get(entity.getClass());
+            
+            int max = 0;
+            int min = 0;
+            
+            switch(entityName) {
+            case "tameArachne":
+                max = Config.tameArachneMilkCooldownMax;
+                min = Config.tameArachneMilkCooldownMin;
+                break;
+            case "tameArachneMedium":
+                max = Config.tameArachneMediumMilkCooldownMax;
+                min = Config.tameArachneMediumMilkCooldownMin;
+                break;
+            case "harpy":
+                max = Config.tameHarpyMilkCooldownMax;
+                min = Config.tameHarpyMilkCooldownMin;
+                break;
+            }
+            return min + rand.nextInt(max - min + 1);
+        }
+        return 0;
     }
     
     public static class BucketNerfProperties implements IExtendedEntityProperties {
@@ -138,7 +242,7 @@ public class BucketNerf
             if(compound.hasKey(MODID)) {
                 NBTTagCompound myData = compound.getCompoundTag(MODID);
                 if(myData.hasKey("NextMilkTime")) {
-                    entity.getDataWatcher().updateObject(29, String.valueOf(myData.getLong("NextMilkTime")));
+                    entity.getDataWatcher().updateObject(Config.nextMilkTimeDataID, String.valueOf(myData.getLong("NextMilkTime")));
                 }
             }
         }

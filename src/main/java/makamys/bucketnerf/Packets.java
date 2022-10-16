@@ -2,12 +2,14 @@ package makamys.bucketnerf;
 
 import java.util.UUID;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldServer;
@@ -22,9 +24,9 @@ public class Packets {
             if(msg.dim >= 0 && msg.dim < worldServers.length) {
                 EntityPlayer player = MinecraftServer.getServer().worldServers[msg.dim].func_152378_a(new UUID(msg.uuidMostSig, msg.uuidLeastSig));
                 if(player != null) {
-                    ItemStack is = player.getHeldItem();
-                    if(is != null && is.getItem() == Items.water_bucket) {
-                        player.inventory.mainInventory[player.inventory.currentItem] = new ItemStack(Items.bucket);
+                    Pair<Item, Integer> output = BucketNerf.getRecipeOutput(player.getHeldItem());
+                    if(output != null) {
+                        player.inventory.mainInventory[player.inventory.currentItem] = new ItemStack(output.getLeft(), 1, output.getRight() == -1 ? 0 : output.getRight());
                         
                         player.worldObj.playSoundEffect(player.posX, player.posY, player.posZ, "game.player.swim", 0.3F, 0.75f + player.worldObj.rand.nextFloat() * 0.5f);
                     }
