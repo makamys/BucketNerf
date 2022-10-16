@@ -9,6 +9,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
@@ -29,6 +30,9 @@ public class Packets {
                         player.inventory.mainInventory[player.inventory.currentItem] = new ItemStack(output.getLeft(), 1, output.getRight() == -1 ? 0 : output.getRight());
                         
                         player.worldObj.playSoundEffect(player.posX, player.posY, player.posZ, "game.player.swim", 0.3F, 0.75f + player.worldObj.rand.nextFloat() * 0.5f);
+                    }
+                    if(player instanceof EntityPlayerMP) {
+                        ((EntityPlayerMP)player).sendContainerToPlayer(player.inventoryContainer);
                     }
                 }
             }
