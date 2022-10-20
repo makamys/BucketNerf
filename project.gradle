@@ -1,1 +1,12 @@
 // Put your project-specific buildscript code in this file
+
+repositories {
+	maven {
+		name = "gt"
+		url = "https://gregtech.mechaenetia.com/"
+	}
+}
+
+dependencies {
+	compileOnly "mcp.mobius.waila:Waila:1.5.11-RC2-NONEI_1.7.10:dev"
+}

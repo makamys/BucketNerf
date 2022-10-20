@@ -29,6 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -42,8 +43,9 @@ import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.relauncher.Side;
 import makamys.bucketnerf.Packets.HandlerEmptyBucket;
 import makamys.bucketnerf.Packets.MessageEmptyBucket;
+import makamys.bucketnerf.compat.WailaCompat;
 
-@Mod(modid = BucketNerf.MODID, version = BucketNerf.VERSION)
+@Mod(modid = BucketNerf.MODID, version = BucketNerf.VERSION, dependencies = "after:TameableArachneMod")
 public class BucketNerf
 {
     public static final String MODID = "bucketnerf";
@@ -71,6 +73,10 @@ public class BucketNerf
         networkWrapper.registerMessage(HandlerEmptyBucket.class, MessageEmptyBucket.class, 0, Side.SERVER);
         
         ClientCommandHandler.instance.registerCommand(new BucketNerfCommand());
+        
+        if(Loader.isModLoaded("Waila")) {
+            WailaCompat.init();
+        }
     }
     
     @EventHandler
@@ -197,19 +203,7 @@ public class BucketNerf
                             }
                         } else if(heldItem == Items.book) {
                             if(event.entityPlayer.worldObj.isRemote) {
-                                long ticksLeft = props.getNextMilkTime() - worldTime;
-                                if(ticksLeft > 0) {
-                                    int seconds = (int)(ticksLeft / 20);
-                                    int mins = seconds / 60;
-                                    int secs = seconds % 60;
-                                    String time = String.format("%02d", secs);
-                                    if(mins > 0) {
-                                        time = String.format("%02d:%s", mins, time);
-                                    }
-                                    postClientTickChatMessages.add("Milk: " + EnumChatFormatting.RED + time + " left" + EnumChatFormatting.RESET);
-                                } else {
-                                    postClientTickChatMessages.add("Milk: " + EnumChatFormatting.GREEN + "Ready" + EnumChatFormatting.RESET);
-                                }
+                                postClientTickChatMessages.add(getMilkStatusString(tameable, event.entityPlayer));
                             }
                         }
                     }
@@ -225,7 +219,9 @@ public class BucketNerf
                 EntityPlayer player = Minecraft.getMinecraft().thePlayer;
                 if(player != null) {
                     for(String msg : postClientTickChatMessages) {
-                        player.addChatMessage(new ChatComponentText(msg));
+                        if(msg != null) {
+                            player.addChatMessage(new ChatComponentText(msg));
+                        }
                     }
                     postClientTickChatMessages.clear();
                 }
@@ -250,6 +246,29 @@ public class BucketNerf
             return entityName.equals("tameArachne") || entityName.equals("tameArachneMedium") || entityName.equals("tameHarpy");
         }
         return false;
+    }
+    
+    public static String getMilkStatusString(Entity entity, EntityPlayer player) {
+        if(isMilkableArachne(entity) && ((EntityTameable)entity).func_152114_e(player) /* isTamedBy */) {
+            BucketNerfProperties props = BucketNerfProperties.fromEntity(entity);
+            long worldTime = entity.worldObj.getTotalWorldTime();
+            
+            long ticksLeft = props.getNextMilkTime() - worldTime;
+            
+            if(ticksLeft > 0) {
+                int seconds = (int)(ticksLeft / 20);
+                int mins = seconds / 60;
+                int secs = seconds % 60;
+                String time = String.format("%02d", secs);
+                if(mins > 0) {
+                    time = String.format("%02d:%s", mins, time);
+                }
+                return "Milk: " + EnumChatFormatting.RED + time + " left" + EnumChatFormatting.RESET;
+            } else {
+                return "Milk: " + EnumChatFormatting.GREEN + "Ready" + EnumChatFormatting.RESET;
+            }
+        }
+        return null;
     }
     
     private static int generateMilkCooldownFor(Entity entity) {
