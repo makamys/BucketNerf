@@ -29,6 +29,8 @@ public class Config {
     public static String[] bucketUsageRecipes;
     @ConfigBoolean(cat="waterBucket", def=false, com="Don't empty water bucket after use. Might fix incompatibility with some mods that require the player to interact with things using water buckets.")
     public static boolean disableBucketEmptying;
+    @ConfigBoolean(cat="waterBucket", def=true, com="Show particles when emptying a bucket.")
+    public static boolean showBucketEmptyingParticles;
     
     @ConfigBoolean(cat="tameableArachne", def=true, com="Enable Tameable Arachne module. Adds a random cooldown after milking a monster girl.")
     public static boolean _enableTameableArachne;
