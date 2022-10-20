@@ -178,9 +178,28 @@ public class BucketNerf
                     
                     if(!output.equals(Pair.of(null, null))) {
                         networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
+                        
+                        EntityPlayer player = event.entityPlayer;
+                        double yaw = Math.toRadians(player.rotationYaw);
+                        double pitch = Math.toRadians(-player.rotationPitch);
+                        double x = -Math.sin(yaw) * Math.cos(pitch);
+                        double z = Math.cos(yaw) * Math.cos(pitch);
+                        double y = Math.sin(pitch);
+                        
+                        double dist = 0.6;
+                        double spread = 0.2;
+                        double yOff = -0.2;
+                        
+                        x = player.posX + x * dist;
+                        y = player.posY + y * dist;
+                        z = player.posZ + z * dist;
             
                         for (int l = 0; l < 8; ++l) {
-                            event.world.spawnParticle("splash", (double)event.x + Math.random(), (double)event.y + Math.random() + 1, (double)event.z + Math.random(), 0.0D, 0.0D, 0.0D);
+                            event.world.spawnParticle("splash",
+                                    x + Math.random() * spread,
+                                    y + Math.random() * spread + yOff,
+                                    z + Math.random() * spread,
+                                    0.0D, 0.0D, 0.0D);
                         }
                     }
                 }
