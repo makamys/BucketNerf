@@ -225,7 +225,7 @@ public class BucketNerf
                 max = Config.tameArachneMediumMilkCooldownMax;
                 min = Config.tameArachneMediumMilkCooldownMin;
                 break;
-            case "harpy":
+            case "tameHarpy":
                 max = Config.tameHarpyMilkCooldownMax;
                 min = Config.tameHarpyMilkCooldownMin;
                 break;
