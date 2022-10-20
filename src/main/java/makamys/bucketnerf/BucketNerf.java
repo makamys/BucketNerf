@@ -168,7 +168,7 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if(Config._enableWaterBucketNerf) {
+        if(Config._enableWaterBucketNerf && !Config.disableBucketEmptying) {
             if((event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR)
                     && !event.entityPlayer.capabilities.isCreativeMode) {
                 Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
