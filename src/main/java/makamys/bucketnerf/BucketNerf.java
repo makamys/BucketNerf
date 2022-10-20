@@ -1,12 +1,16 @@
 package makamys.bucketnerf;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.passive.EntityTameable;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.IExtendedEntityProperties;
@@ -24,6 +28,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -31,6 +36,7 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.relauncher.Side;
@@ -48,6 +54,8 @@ public class BucketNerf
     public static SimpleNetworkWrapper networkWrapper;
     
     public static List<Pair<Pair<Item, Integer>, Pair<Item, Integer>>> bucketRecipes = new ArrayList<>();
+    
+    private List<String> postClientTickChatMessages = new ArrayList<>();
 
     @EventHandler
     public void preinit(FMLPreInitializationEvent event) {
@@ -57,6 +65,7 @@ public class BucketNerf
     @EventHandler
     public void init(FMLInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(this);
+        FMLCommonHandler.instance().bus().register(this);
         
         networkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
         networkWrapper.registerMessage(HandlerEmptyBucket.class, MessageEmptyBucket.class, 0, Side.SERVER);
@@ -166,24 +175,59 @@ public class BucketNerf
     @SubscribeEvent
     public void onEntityInteract(EntityInteractEvent event) {
         if(Config._enableTameableArachne) {
-            if(event.entityPlayer.getHeldItem() != null && event.entityPlayer.getHeldItem().getItem() == Items.bucket) {
-                if(isMilkableArachne(event.target)) {
-                    EntityTameable tameable = (EntityTameable)event.target;   
-                    if(tameable.func_152114_e(event.entityPlayer)) { // isTamedBy
-                        BucketNerfProperties props = BucketNerfProperties.fromEntity(tameable);
-                        
-                        long worldTime = event.entityLiving.worldObj.getTotalWorldTime();
-                        
-                        LOGGER.trace("worldTime: " + worldTime + " nextMilkTime: " + props.getNextMilkTime());
-                        
-                        if(worldTime > props.getNextMilkTime()) {
-                            props.setNextMilkTime(worldTime + generateMilkCooldownFor(tameable));
-                            LOGGER.trace("can milk, set next time to " + props.getNextMilkTime());
-                        } else {
-                            LOGGER.trace("can not milk.");
-                            event.setCanceled(true);
+            if(isMilkableArachne(event.target)) {
+                EntityTameable tameable = (EntityTameable)event.target;
+                
+                if(tameable.func_152114_e(event.entityPlayer)) { // isTamedBy
+                    BucketNerfProperties props = BucketNerfProperties.fromEntity(tameable);
+                    
+                    long worldTime = event.entityLiving.worldObj.getTotalWorldTime();
+                
+                    if(event.entityPlayer.getHeldItem() != null) {
+                        Item heldItem = event.entityPlayer.getHeldItem().getItem();
+                        if(heldItem == Items.bucket) {
+                            LOGGER.trace("worldTime: " + worldTime + " nextMilkTime: " + props.getNextMilkTime());
+                            
+                            if(worldTime > props.getNextMilkTime()) {
+                                props.setNextMilkTime(worldTime + generateMilkCooldownFor(tameable));
+                                LOGGER.trace("can milk, set next time to " + props.getNextMilkTime());
+                            } else {
+                                LOGGER.trace("can not milk.");
+                                event.setCanceled(true);
+                            }
+                        } else if(heldItem == Items.book) {
+                            if(event.entityPlayer.worldObj.isRemote) {
+                                long ticksLeft = props.getNextMilkTime() - worldTime;
+                                if(ticksLeft > 0) {
+                                    int seconds = (int)(ticksLeft / 20);
+                                    int mins = seconds / 60;
+                                    int secs = seconds % 60;
+                                    String time = String.format("%02d", secs);
+                                    if(mins > 0) {
+                                        time = String.format("%02d:%s", mins, time);
+                                    }
+                                    postClientTickChatMessages.add("Milk: " + EnumChatFormatting.RED + time + " left" + EnumChatFormatting.RESET);
+                                } else {
+                                    postClientTickChatMessages.add("Milk: " + EnumChatFormatting.GREEN + "Ready" + EnumChatFormatting.RESET);
+                                }
+                            }
                         }
                     }
+                }
+            }
+        }
+    }
+    
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if(event.phase == TickEvent.Phase.END) {
+            if(event.side == Side.CLIENT) {
+                EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+                if(player != null) {
+                    for(String msg : postClientTickChatMessages) {
+                        player.addChatMessage(new ChatComponentText(msg));
+                    }
+                    postClientTickChatMessages.clear();
                 }
             }
         }
