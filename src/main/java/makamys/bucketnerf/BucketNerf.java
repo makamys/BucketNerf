@@ -153,13 +153,23 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onFillBucket(FillBucketEvent event) {
-        
+        if(Config._enableWaterBucketNerf) {
+            if(!event.entityPlayer.capabilities.isCreativeMode) {
+                ItemStack is = event.current;
+                if(is != null) {
+                    Pair<Item, Integer> output = getRecipeOutput(event.current);
+                    if(output != null) {
+                        event.setCanceled(true);
+                    }
+                }
+            }
+        }
     }
     
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
         if(Config._enableWaterBucketNerf) {
-            if((event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR || event.action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK)
+            if((event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR)
                     && !event.entityPlayer.capabilities.isCreativeMode) {
                 Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
                 
