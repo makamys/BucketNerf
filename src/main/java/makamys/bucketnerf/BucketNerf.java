@@ -196,7 +196,7 @@ public class BucketNerf
                             
                             double dist = 0.6;
                             double spread = 0.2;
-                            double yOff = -0.2;
+                            double yOff = -0.4;
                             
                             x = player.posX + x * dist;
                             y = player.posY + y * dist;
