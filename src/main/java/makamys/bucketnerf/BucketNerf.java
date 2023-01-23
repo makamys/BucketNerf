@@ -111,7 +111,7 @@ public class BucketNerf
                         }
                     }
                 } catch(Exception e) {
-                    LOGGER.warn("Error parsing line `" + line + "`: " + e.getMessage());
+                    LOGGER.warn("Error parsing line `" + line + "`: " + e);
                 }
             }
         }
@@ -134,7 +134,7 @@ public class BucketNerf
             }
             return Pair.of(item, meta);
         } catch(Exception e) {
-            LOGGER.warn("Error parsing item meta string `" + string + "`: " + e.getMessage());
+            LOGGER.warn("Error parsing item meta string `" + string + "`: " + e);
             throw new RuntimeException();
         }
     }
