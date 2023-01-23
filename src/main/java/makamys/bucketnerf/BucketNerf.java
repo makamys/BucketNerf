@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -85,6 +87,8 @@ public class BucketNerf
     }
     
     public static void parseConfig() {
+        LOGGER.debug("Loading config");
+        
         bucketRecipes.clear();
         
         if(Config._enableWaterBucketNerf) {
@@ -102,7 +106,9 @@ public class BucketNerf
                         Pair<Item, Integer> leftItemMeta = parseItemMeta(left);
                         Pair<Item, Integer> rightItemMeta = right == null ? Pair.of(null, null) : parseItemMeta(right);
                         
-                        bucketRecipes.add(Pair.of(leftItemMeta, rightItemMeta));
+                        if(leftItemMeta.getLeft() != null) {
+                            bucketRecipes.add(Pair.of(leftItemMeta, rightItemMeta));
+                        }
                     }
                 } catch(Exception e) {
                     LOGGER.warn("Error parsing line `" + line + "`: " + e.getMessage());
@@ -123,7 +129,8 @@ public class BucketNerf
             
             Item item = (Item)Item.itemRegistry.getObject(namespace + ":" + name);
             if(item == null) {
-                throw new IllegalArgumentException("Unknown item: " + namespace + ":" + name);
+                LOGGER.debug("Unknown item: " + namespace + ":" + name);
+                return Pair.of(null, null);
             }
             return Pair.of(item, meta);
         } catch(Exception e) {
