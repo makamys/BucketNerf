@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -175,44 +173,45 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if(Config._enableWaterBucketNerf && !Config.disableBucketEmptying) {
-            if((event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR)
-                    && !event.entityPlayer.capabilities.isCreativeMode) {
-                Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
-                
-                if(output != null) {
+        if(Config._enableWaterBucketNerf && !Config.disableBucketEmptying && !event.entityPlayer.capabilities.isCreativeMode) {
+            Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
+            if(output != null) {
+                if(event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR) {
                     event.setCanceled(true);
                     
                     if(!output.equals(Pair.of(null, null))) {
                         networkWrapper.sendToServer(new MessageEmptyBucket(event.entityPlayer));
                         
                         if(Config.showBucketEmptyingParticles) {
-                            EntityPlayer player = event.entityPlayer;
-                            double yaw = Math.toRadians(player.rotationYaw);
-                            double pitch = Math.toRadians(-player.rotationPitch);
-                            double x = -Math.sin(yaw) * Math.cos(pitch);
-                            double z = Math.cos(yaw) * Math.cos(pitch);
-                            double y = Math.sin(pitch);
-                            
-                            double dist = 0.6;
-                            double spread = 0.2;
-                            double yOff = -0.4;
-                            
-                            x = player.posX + x * dist;
-                            y = player.posY + y * dist;
-                            z = player.posZ + z * dist;
-                
-                            for (int l = 0; l < 8; ++l) {
-                                event.world.spawnParticle("splash",
-                                        x + Math.random() * spread,
-                                        y + Math.random() * spread + yOff,
-                                        z + Math.random() * spread,
-                                        0.0D, 0.0D, 0.0D);
-                            }
+                            spawnBucketEmptyingParticles(event.entityPlayer, event.world);
                         }
                     }
                 }
             }
+        }
+    }
+    
+    private static void spawnBucketEmptyingParticles(EntityPlayer player, World world) {
+        double yaw = Math.toRadians(player.rotationYaw);
+        double pitch = Math.toRadians(-player.rotationPitch);
+        double x = -Math.sin(yaw) * Math.cos(pitch);
+        double z = Math.cos(yaw) * Math.cos(pitch);
+        double y = Math.sin(pitch);
+        
+        double dist = 0.6;
+        double spread = 0.2;
+        double yOff = -0.4;
+        
+        x = player.posX + x * dist;
+        y = player.posY + y * dist;
+        z = player.posZ + z * dist;
+
+        for (int l = 0; l < 8; ++l) {
+            world.spawnParticle("splash",
+                    x + Math.random() * spread,
+                    y + Math.random() * spread + yOff,
+                    z + Math.random() * spread,
+                    0.0D, 0.0D, 0.0D);
         }
     }
     
