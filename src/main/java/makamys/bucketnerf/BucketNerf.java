@@ -173,10 +173,10 @@ public class BucketNerf
     
     @SubscribeEvent
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if(Config._enableWaterBucketNerf && !Config.disableBucketEmptying && !event.entityPlayer.capabilities.isCreativeMode) {
+        if(Config._enableWaterBucketNerf && !event.entityPlayer.capabilities.isCreativeMode) {
             Pair<Item, Integer> output = getRecipeOutput(event.entityPlayer.getHeldItem());
             if(output != null) {
-                if(event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR) {
+                if(!Config.disableBucketEmptying && event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR) {
                     event.setCanceled(true);
                     
                     if(!output.equals(Pair.of(null, null))) {
@@ -186,6 +186,8 @@ public class BucketNerf
                             spawnBucketEmptyingParticles(event.entityPlayer, event.world);
                         }
                     }
+                } else if(Config.disableBlockInteractEvents) {
+                    event.setCanceled(true);
                 }
             }
         }

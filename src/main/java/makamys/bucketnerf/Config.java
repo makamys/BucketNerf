@@ -29,6 +29,8 @@ public class Config {
     public static String[] bucketUsageRecipes;
     @ConfigBoolean(cat="waterBucket", def=false, com="Don't empty water bucket after use. Might fix incompatibility with some mods that require the player to interact with things using water buckets.")
     public static boolean disableBucketEmptying;
+    @ConfigBoolean(cat="waterBucket", def=false, com="Disable block click events when holding a water bucket. For those who want to nerf things even further.")
+    public static boolean disableBlockInteractEvents;
     @ConfigBoolean(cat="waterBucket", def=true, com="Show particles when emptying a bucket.")
     public static boolean showBucketEmptyingParticles;
     
